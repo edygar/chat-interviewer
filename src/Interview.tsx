@@ -25,6 +25,7 @@ type InterviewState = {
 };
 
 type InterviewProps = {
+  render?: React.ElementType<InterviewRendererProps>;
   interviewerAvatar?: string;
   intervieweeAvatar?: string;
   onComplete: (answers: InterviewState["data"]) => void;
@@ -32,6 +33,11 @@ type InterviewProps = {
     currentState: Pick<InterviewState, "data" | "logRegistry">
   ) => React.ReactElement;
 };
+
+type InterviewRendererProps = Pick<InterviewState, "logRegistry"> &
+  Pick<InterviewProps, "intervieweeAvatar" | "interviewerAvatar"> & {
+    input: React.ReactElement;
+  };
 
 type InterviewCatalogEntry = { question: QuestionInfo; answered?: boolean };
 type InterviewCatalog = Map<Symbol, InterviewCatalogEntry>;
@@ -91,20 +97,6 @@ const inquiryReduce: React.Reducer<InterviewState, InterviewAction> = (
 
 const InterviewCatalogContext = React.createContext<InterviewCatalog>(null);
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "flex-end"
-  },
-  logRegistry: {
-    flex: 1,
-    overflow: "scroll",
-    justifyContent: "flex-end"
-  },
-
-  input: {}
-});
-
 export const Question: React.FC<QuestionInfo> = (questionInfo) => {
   const interviewCatalog = React.useContext(InterviewCatalogContext);
   const { current: id } = useLazyRef<Symbol>(() => Symbol("question"));
@@ -127,14 +119,49 @@ Question.defaultProps = {
   validate: (value: unknown) => {}
 };
 
-const InquiryRenderer: React.FC<
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: "flex-end"
+  },
+  logRegistry: {
+    flex: 1,
+    overflowY: "scroll",
+    justifyContent: "flex-end"
+  },
+
+  input: {}
+});
+
+const DefaultInterviewRenderer: React.FC<InterviewRendererProps> = ({
+  logRegistry,
+  input,
+  intervieweeAvatar,
+  interviewerAvatar
+}) => (
+  <View style={styles.container}>
+    <View style={styles.logRegistry}>
+      {logRegistry.map((message, index) => (
+        <Message
+          avatar={message.mine ? intervieweeAvatar : interviewerAvatar}
+          key={index}
+          {...message}
+        />
+      ))}
+    </View>
+    {input ? <View style={styles.input}>{input}</View> : null}
+  </View>
+);
+
+const InterviewDisplay: React.FC<
   {
     interviewCatalog: InterviewCatalog;
     state: InterviewState;
     update: (action: InterviewAction) => void;
-  } & Pick<InterviewProps, "interviewerAvatar" | "intervieweeAvatar">
+  } & Pick<InterviewProps, "render" | "interviewerAvatar" | "intervieweeAvatar">
 > = ({
   state,
+  render: InterviewRenderer,
   interviewCatalog: promptsMap,
   interviewerAvatar,
   intervieweeAvatar,
@@ -150,38 +177,34 @@ const InquiryRenderer: React.FC<
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.logRegistry}>
-        {state.logRegistry.map((message, index) => (
-          <Message
-            avatar={message.mine ? intervieweeAvatar : interviewerAvatar}
-            key={index}
-            {...message}
-          />
-        ))}
-
-        {interviewCatalogEntry && !interviewCatalogEntry.answered && (
-          <Message
-            avatar={interviewerAvatar}
-            content={interviewCatalogEntry.question.question}
-          />
-        )}
-      </View>
-      {interviewCatalogEntry && !interviewCatalogEntry.answered ? (
-        <View key={state.logRegistry.length} style={styles.input}>
-          {interviewCatalogEntry.question.input((content) => {
-            update({
-              event: "answered",
-              content
-            });
-          })}
-        </View>
-      ) : null}
-    </View>
+    <InterviewRenderer
+      intervieweeAvatar={intervieweeAvatar}
+      interviewerAvatar={interviewerAvatar}
+      logRegistry={state.logRegistry.concat(
+        interviewCatalogEntry && !interviewCatalogEntry.answered
+          ? [
+              {
+                content: interviewCatalogEntry.question.question
+              }
+            ]
+          : []
+      )}
+      input={
+        interviewCatalogEntry && !interviewCatalogEntry.answered
+          ? interviewCatalogEntry.question.input((content) => {
+              update({
+                event: "answered",
+                content
+              });
+            })
+          : null
+      }
+    />
   );
 };
 
 export const Interview: React.FC<InterviewProps> = ({
+  render,
   children,
   interviewerAvatar,
   intervieweeAvatar,
@@ -227,7 +250,8 @@ export const Interview: React.FC<InterviewProps> = ({
   return (
     <InterviewCatalogContext.Provider value={interviewCatalog}>
       {children({ data: state.data, logRegistry: state.logRegistry })}
-      <InquiryRenderer
+      <InterviewDisplay
+        render={render}
         state={state}
         interviewerAvatar={interviewerAvatar}
         intervieweeAvatar={intervieweeAvatar}
@@ -236,4 +260,8 @@ export const Interview: React.FC<InterviewProps> = ({
       />
     </InterviewCatalogContext.Provider>
   );
+};
+
+Interview.defaultProps = {
+  render: DefaultInterviewRenderer
 };
