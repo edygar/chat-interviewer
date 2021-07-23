@@ -1,2 +1,2 @@
-# registry-inquirer
+# Chat Interviewer
 Created with CodeSandbox
