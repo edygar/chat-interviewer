@@ -1,57 +1,7 @@
 import * as React from "react";
-import {
-  TextInput,
-  View,
-  ViewProps,
-  StyleSheet,
-  Pressable
-} from "react-native";
-
-const styles = StyleSheet.create({
-  container: {
-    margin: 5,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderStyle: "solid",
-    borderColor: "#34495e",
-    flexDirection: "row",
-    alignItems: "flex-end"
-  },
-  input: {
-    padding: 15,
-    flex: 1
-  },
-  sendIconContainer: {
-    flexDirection: "row",
-    borderRadius: 20,
-    padding: 5,
-    marginBottom: 10,
-    marginRight: 10,
-    transform: [{ rotate: "45deg" }]
-  },
-  sendIcon: {
-    borderColor: "transparent",
-    borderBottomColor: "#2B4052",
-    borderBottomWidth: 20,
-    borderLeftWidth: 10,
-    transform: [{ skewY: "-25deg" }]
-  },
-  sendIconRight: {
-    transform: [{ scaleX: -1 }, { skewY: "-25deg" }]
-  },
-  sendDisabled: {
-    opacity: 0.3
-  }
-});
-
-const SendIcon: React.FC<Omit<ViewProps, "children">> = ({ style }) => {
-  return (
-    <View style={[styles.sendIconContainer, style]}>
-      <View style={styles.sendIcon} />
-      <View style={[styles.sendIcon, styles.sendIconRight]} />
-    </View>
-  );
-};
+import { TextInput, View, Pressable } from "react-native";
+import tw from "tailwind-react-native-classnames";
+import SendIcon from "./SendIcon";
 
 const Composer: React.FC<
   {
@@ -62,10 +12,12 @@ const Composer: React.FC<
   const inputRef = React.useRef<TextInput>();
 
   return (
-    <View style={styles.container}>
+    <View
+      style={tw`m-2 items-stretch rounded-lg border border-gray-900 items-end flex-row`}
+    >
       <TextInput
         ref={inputRef}
-        style={styles.input}
+        style={tw`flex-1 p-3`}
         value={text}
         onChangeText={(newText) => setText(newText)}
         onSubmitEditing={() => {
@@ -76,7 +28,7 @@ const Composer: React.FC<
         {...props}
       />
       <Pressable onPress={() => text && onSend(text)}>
-        <SendIcon style={!text && styles.sendDisabled} />
+        <SendIcon style={[tw`h-6 w-6 mx-3 my-2`, !text && tw`opacity-30`]} />
       </Pressable>
     </View>
   );

@@ -8,6 +8,7 @@ import {
   View,
   ViewProps
 } from "react-native";
+import tw from "tailwind-react-native-classnames";
 
 type MessageProps = ViewProps & {
   avatar?: string;
@@ -24,36 +25,48 @@ type MessageModule = ((props: MessageProps) => React.ReactElement) & {
 };
 
 const Message: MessageModule = (props) => {
-  const { mine, avatar, ...otherProps } = props;
-  const containerStyle = [styles.container, mine && styles.myContainer];
+  const { mine, avatar, style, ...otherProps } = props;
   let content;
 
   if ("children" in otherProps) {
     content = otherProps.children;
     delete otherProps.children;
   } else if ("content" in otherProps) {
-    content = <Text style={styles.content}>{otherProps.content}</Text>;
+    content = <Message.Text>{otherProps.content}</Message.Text>;
     otherProps.content = undefined;
     delete otherProps.content;
   }
 
-  if ("style" in otherProps) {
-    containerStyle.push(otherProps.style);
-    delete otherProps.style;
-  }
-
-  const avatarStyle = [styles.logo, mine && styles.myBg];
+  const avatarStyle = [
+    tw`w-10 h-10 bg-gray-600 rounded-full justify-center items-center`,
+    mine ? tw`bg-blue-400 ml-2` : tw`mr-2`
+  ];
   return (
-    <View style={containerStyle} {...otherProps}>
+    <View
+      style={[
+        tw`m-2 flex-row items-end justify-start`,
+        mine && tw`flex-row-reverse`,
+        style
+      ]}
+      {...otherProps}
+    >
       {avatar ? (
         <Image style={avatarStyle} source={{ uri: avatar }} />
       ) : (
         <View style={avatarStyle}>
-          <Text style={styles.logoText}>?</Text>
+          <Text style={tw`text-sm text-white`}>?</Text>
         </View>
       )}
-      <View style={styles.spacer} />
-      <View style={[styles.bubble, mine && [styles.myBubble, styles.myBg]]}>
+      <View
+        style={[
+          tw.style("flex-row flex-wrap justify-start p-3 rounded-xl", {
+            maxWidth: "75%"
+          }),
+          mine
+            ? tw` rounded-br-none bg-blue-400`
+            : tw`rounded-bl-none bg-gray-600`
+        ]}
+      >
         {content}
       </View>
     </View>
@@ -61,57 +74,7 @@ const Message: MessageModule = (props) => {
 };
 
 Message.Text = ({ style, ...props }) => (
-  <Text style={[].concat(styles.content, style)} {...props} />
+  <Text style={[].concat(tw`text-white`, style)} {...props} />
 );
-
-const styles = StyleSheet.create({
-  container: {
-    margin: 5,
-    flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "flex-start"
-  },
-  spacer: {
-    width: 5
-  },
-  content: {
-    color: "white"
-  },
-  logo: {
-    width: 40,
-    height: 40,
-    backgroundColor: "#2c3e50",
-    borderRadius: 100,
-    justifyContent: "center",
-    alignItems: "center"
-  },
-
-  logoText: {
-    fontSize: 16,
-    color: "white"
-  },
-
-  bubble: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    backgroundColor: "#34495e",
-    minHeight: 40,
-    maxWidth: "70%",
-    justifyContent: "flex-start",
-    padding: 15,
-    borderRadius: 20,
-    borderBottomLeftRadius: 0
-  },
-  myContainer: {
-    flexDirection: "row-reverse"
-  },
-  myBubble: {
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 0
-  },
-  myBg: {
-    backgroundColor: "#7f8c8d"
-  }
-});
 
 export default Message;

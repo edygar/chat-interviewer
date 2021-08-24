@@ -1,5 +1,6 @@
 import * as React from "react";
-import { View, StyleSheet, Text, Pressable } from "react-native";
+import { View, StyleSheet, Text, Pressable, FlatList } from "react-native";
+import tw from "tailwind-react-native-classnames";
 
 const styles = StyleSheet.create({
   container: {
@@ -16,9 +17,6 @@ const styles = StyleSheet.create({
     padding: 10,
     margin: 5
   },
-  choicePressed: {
-    backgroundColor: "darkblue"
-  },
   choiceText: {
     color: "darkblue"
   },
@@ -34,23 +32,26 @@ const Picker: React.FC<{
   onPick: (choice: Choice) => void;
 }> = ({ choices, onPick }) => {
   return (
-    <View style={styles.container}>
-      {choices.map((choice) => (
+    <FlatList
+      data={choices}
+      keyExtractor={({ value }) => value}
+      renderItem={({ item: choice }) => (
         <Pressable key={choice.label} onPress={() => onPick(choice)}>
           {({ pressed }) => (
             <View
-              style={[styles.choice, pressed ? styles.choicePressed : null]}
+              style={[
+                tw`rounded-xl border border-blue-700 overflow-hidden items-center justify-center p-3 mx-3 my-1 self-end`,
+                pressed ? tw`bg-blue-400 border-blue-400` : null
+              ]}
             >
-              <Text
-                style={[styles.choiceText, pressed && styles.choiceTextPressed]}
-              >
+              <Text style={[tw`text-blue-700`, pressed && tw`text-white`]}>
                 {choice.label}
               </Text>
             </View>
           )}
         </Pressable>
-      ))}
-    </View>
+      )}
+    />
   );
 };
 export default Picker;

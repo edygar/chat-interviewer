@@ -1,34 +1,10 @@
 import * as React from "react";
-import { View, Text, StyleSheet, AppRegistry } from "react-native";
+import { SafeAreaView, KeyboardAvoidingView, AppRegistry } from "react-native";
 
 import { Interview, Question } from "./Interview";
 import Composer from "./Composer";
 import Picker from "./Picker";
-
-const styles = StyleSheet.create({
-  window: {
-    flex: 1,
-    flexDirection: "column",
-    width: "100%",
-    borderWidth: 1,
-    borderStyle: "dotted",
-    backgroundColor: "#000"
-  },
-  statusBar: {
-    height: 35,
-    paddingHorizontal: 30,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center"
-  },
-  statusBarItem: {
-    color: "#fff"
-  },
-  app: {
-    flex: 1,
-    backgroundColor: "#fff"
-  }
-});
+import tw from "tailwind-react-native-classnames";
 
 const getLabel = ({ label }) => label;
 const getValue = ({ value }) => value;
@@ -48,13 +24,9 @@ const PickerPrompt: React.FC<PickerPromptProps> = ({
   />
 );
 
-const PhoneWindow = (props: any) => (
-  <View style={styles.window}>
-    <View style={styles.statusBar}>
-      <Text style={styles.statusBarItem}>9:30</Text>
-      <Text style={styles.statusBarItem}>{"4G   ###"}</Text>
-    </View>
-    <View style={styles.app}>
+const PhoneWindow = () => (
+  <KeyboardAvoidingView behavior="height" style={tw`flex-1`}>
+    <SafeAreaView style={tw`flex-1`}>
       <Interview
         interviewerAvatar="https://reactnative.dev/img/tiny_logo.png"
         onComplete={(answers) => {
@@ -151,8 +123,8 @@ const PhoneWindow = (props: any) => (
           </>
         )}
       </Interview>
-    </View>
-  </View>
+    </SafeAreaView>
+  </KeyboardAvoidingView>
 );
 
 setTimeout(() => {

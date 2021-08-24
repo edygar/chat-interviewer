@@ -1,7 +1,9 @@
 import * as React from "react";
-import { View, StyleSheet } from "react-native";
+import { View, FlatList } from "react-native";
 import { useLazyRef } from "./use-lazy-ref";
 import Message from "./Message";
+import tw from "tailwind-react-native-classnames";
+import { useMemo } from "react";
 
 type QuestionInfo = {
   id: string;
@@ -13,6 +15,8 @@ type QuestionInfo = {
 };
 
 type LogEntry = {
+  id: string;
+  timestamp: Date;
   content: string;
   mine?: boolean;
 };
@@ -57,6 +61,7 @@ function getUnansweredCatalogEntryId(promptsMap: InterviewCatalog) {
   return null;
 }
 
+let lastId = -Number.MAX_SAFE_INTEGER;
 const inquiryReduce: React.Reducer<InterviewState, InterviewAction> = (
   state: InterviewState,
   payload
@@ -71,15 +76,27 @@ const inquiryReduce: React.Reducer<InterviewState, InterviewAction> = (
   );
   const reason = catalogEntry.question.validate(content);
   const logRegistry = state.logRegistry.concat([
-    { content: catalogEntry.question.question, mine: false },
     {
+      id: String(lastId++),
+      timestamp: new Date(),
+      content: catalogEntry.question.question,
+      mine: false
+    },
+    {
+      id: String(lastId++),
+      timestamp: new Date(),
       content: catalogEntry.question.answer(payload.content),
       mine: true
     }
   ]);
 
   if (reason) {
-    logRegistry.push({ content: reason, mine: false });
+    logRegistry.push({
+      id: String(lastId++),
+      timestamp: new Date(),
+      content: reason,
+      mine: false
+    });
     return { ...state, logRegistry };
   }
 
@@ -119,39 +136,30 @@ Question.defaultProps = {
   validate: (value: unknown) => {}
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "flex-end"
-  },
-  logRegistry: {
-    flex: 1,
-    overflowY: "scroll",
-    justifyContent: "flex-end"
-  },
-
-  input: {}
-});
-
 const DefaultInterviewRenderer: React.FC<InterviewRendererProps> = ({
   logRegistry,
   input,
   intervieweeAvatar,
   interviewerAvatar
-}) => (
-  <View style={styles.container}>
-    <View style={styles.logRegistry}>
-      {logRegistry.map((message, index) => (
-        <Message
-          avatar={message.mine ? intervieweeAvatar : interviewerAvatar}
-          key={index}
-          {...message}
-        />
-      ))}
+}) => {
+  const chat = useMemo(() => logRegistry.slice(0).reverse(), [logRegistry]);
+  return (
+    <View style={tw`flex-1 justify-end`}>
+      <FlatList
+        data={chat}
+        inverted
+        keyExtractor={({ id }) => id}
+        renderItem={({ item: message }) => (
+          <Message
+            avatar={message.mine ? intervieweeAvatar : interviewerAvatar}
+            {...message}
+          />
+        )}
+      />
+      <View style={tw`flex-none`}>{input ? input : null}</View>
     </View>
-    {input ? <View style={styles.input}>{input}</View> : null}
-  </View>
-);
+  );
+};
 
 const InterviewDisplay: React.FC<
   {
@@ -184,20 +192,24 @@ const InterviewDisplay: React.FC<
         interviewCatalogEntry && !interviewCatalogEntry.answered
           ? [
               {
+                id: "temp",
+                timestamp: new Date(),
                 content: interviewCatalogEntry.question.question
               }
             ]
           : []
       )}
       input={
-        interviewCatalogEntry && !interviewCatalogEntry.answered
-          ? interviewCatalogEntry.question.input((content) => {
+        interviewCatalogEntry && !interviewCatalogEntry.answered ? (
+          <React.Fragment key={state.logRegistry.length}>
+            {interviewCatalogEntry.question.input((content) => {
               update({
                 event: "answered",
                 content
               });
-            })
-          : null
+            })}
+          </React.Fragment>
+        ) : null
       }
     />
   );
