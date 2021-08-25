@@ -2,7 +2,7 @@ import * as React from "react";
 import { View, ViewProps } from "react-native";
 import tw from "tailwind-react-native-classnames";
 
-const STEPS_COUNT = 6;
+const STEPS_COUNT = 15;
 
 function getGradient(position, currentIndex, stepsCount = STEPS_COUNT) {
   if (position === currentIndex) return 50;
@@ -19,7 +19,7 @@ export default function LoadingIcon({ style, ...props }: ViewProps) {
   const intervalRef = React.useRef(null);
 
   React.useEffect(() => {
-    intervalRef.current = setInterval(rotate, 150);
+    intervalRef.current = setInterval(rotate, 100);
     return () => {
       clearInterval(intervalRef.current);
     };

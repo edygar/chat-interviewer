@@ -143,7 +143,9 @@ const inquiryReduce: React.Reducer<InterviewState, InterviewAction> = (
       content: reason,
       mine: false
     });
-    return { ...state, status: "ready", logRegistry };
+    const newState = { ...state, status: "ready", logRegistry };
+    if ("pending" in newState) delete newState.pending;
+    return newState;
   }
 
   catalogEntry.answered = true;
