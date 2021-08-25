@@ -1,5 +1,10 @@
 import * as React from "react";
-import { SafeAreaView, KeyboardAvoidingView, AppRegistry } from "react-native";
+import {
+  SafeAreaView,
+  AppRegistry,
+  KeyboardAvoidingView,
+  Platform
+} from "react-native";
 
 import { Interview, Question } from "./Interview";
 import Composer from "./Composer";
@@ -24,9 +29,12 @@ const PickerPrompt: React.FC<PickerPromptProps> = ({
   />
 );
 
-const PhoneWindow = () => (
-  <KeyboardAvoidingView behavior="height" style={tw`flex-1`}>
-    <SafeAreaView style={tw`flex-1`}>
+const App = () => (
+  <SafeAreaView style={tw`flex-1`}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={tw`flex-1`}
+    >
       <Interview
         interviewerAvatar="https://reactnative.dev/img/tiny_logo.png"
         onComplete={(answers) => {
@@ -38,7 +46,10 @@ const PhoneWindow = () => (
             <Question
               id="name"
               question="Qual o seu nome?"
-              transform={(name: string) => name.trim()}
+              transform={async (name: string) => {
+                await new Promise((res) => setTimeout(res, 3000));
+                return name.trim().toUpperCase();
+              }}
               validate={(name) => !name && "Precisamos do seu nome"}
               input={(setAnswer) => (
                 <Composer autoFocus onSend={(message) => setAnswer(message)} />
@@ -123,8 +134,8 @@ const PhoneWindow = () => (
           </>
         )}
       </Interview>
-    </SafeAreaView>
-  </KeyboardAvoidingView>
+    </KeyboardAvoidingView>
+  </SafeAreaView>
 );
 
 setTimeout(() => {
@@ -145,5 +156,5 @@ setTimeout(() => {
 }, 1000);
 
 const rootTag = document.getElementById("root");
-AppRegistry.registerComponent("App", () => PhoneWindow);
+AppRegistry.registerComponent("App", () => App);
 AppRegistry.runApplication("App", { rootTag });

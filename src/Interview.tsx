@@ -9,8 +9,11 @@ type QuestionInfo = {
   id: string;
   question: string;
   answer?: (value: unknown) => string;
-  transform?: (value: unknown, question: QuestionInfo) => unknown;
-  validate?: (value: unknown) => string | void;
+  transform?: (
+    value: unknown,
+    question: QuestionInfo
+  ) => unknown | Promise<unknown>;
+  validate?: (value: unknown) => string | void | Promise<string | void>;
   input: (setAnswer: (answer: unknown) => void) => React.ReactElement;
 };
 
@@ -21,12 +24,20 @@ type LogEntry = {
   mine?: boolean;
 };
 
-type InterviewState = {
+type ReadyInterviewState = {
+  status: "ready";
   step: Symbol;
   logRegistry: LogEntry[];
   interviewCatalog: InterviewCatalog;
   data: Record<string, unknown>;
 };
+
+type InterviewState =
+  | ReadyInterviewState
+  | (Omit<ReadyInterviewState, "status"> & {
+      status: "transforming" | "validating";
+      pending: Promise<unknown>;
+    });
 
 type InterviewProps = {
   render?: React.ElementType<InterviewRendererProps>;
@@ -48,7 +59,9 @@ type InterviewCatalog = Map<Symbol, InterviewCatalogEntry>;
 
 type InterviewAction =
   | { event: "step_changed"; step: Symbol }
-  | { event: "answered"; content: unknown };
+  | { event: "answered"; content: unknown }
+  | { event: "transformed"; content: unknown }
+  | { event: "validated"; reason: unknown; content: unknown };
 
 /**
  * Finds the first unanswered question on a given `InterviewCatalog`.
@@ -69,26 +82,58 @@ const inquiryReduce: React.Reducer<InterviewState, InterviewAction> = (
   if (payload.event === "step_changed") {
     return { ...state, step: payload.step };
   }
+
   const catalogEntry = state.interviewCatalog.get(state.step);
-  const content = catalogEntry.question.transform(
-    payload.content,
-    catalogEntry.question
-  );
-  const reason = catalogEntry.question.validate(content);
-  const logRegistry = state.logRegistry.concat([
-    {
-      id: String(lastId++),
-      timestamp: new Date(),
-      content: catalogEntry.question.question,
-      mine: false
-    },
-    {
-      id: String(lastId++),
-      timestamp: new Date(),
-      content: catalogEntry.question.answer(payload.content),
-      mine: true
+  let content = payload.content;
+  let logRegistry = state.logRegistry;
+
+  if (payload.event === "answered") {
+    logRegistry = logRegistry.concat([
+      {
+        id: String(lastId++),
+        timestamp: new Date(),
+        content: catalogEntry.question.question,
+        mine: false
+      },
+      {
+        id: String(lastId++),
+        timestamp: new Date(),
+        content: catalogEntry.question.answer(content),
+        mine: true
+      }
+    ]);
+    content = catalogEntry.question.transform(content, catalogEntry.question);
+
+    if (content instanceof Promise) {
+      return {
+        ...state,
+        status: "transforming",
+        pending: content.then(
+          (resolution) => [resolution, payload.content],
+          (rejection) => [rejection, payload.content]
+        ),
+        logRegistry
+      };
     }
-  ]);
+  }
+  let reason;
+  if (payload.event === "validated") {
+    reason = payload.reason;
+    content = payload.content;
+  } else {
+    reason = catalogEntry.question.validate(content);
+    if (reason instanceof Promise) {
+      return {
+        ...state,
+        status: "validating",
+        logRegistry,
+        pending: reason.then(
+          (resolution) => [resolution, content],
+          (rejection) => [rejection, content]
+        )
+      };
+    }
+  }
 
   if (reason) {
     logRegistry.push({
@@ -97,19 +142,22 @@ const inquiryReduce: React.Reducer<InterviewState, InterviewAction> = (
       content: reason,
       mine: false
     });
-    return { ...state, logRegistry };
+    return { ...state, status: "ready", logRegistry };
   }
 
   catalogEntry.answered = true;
 
-  return {
+  const newState = {
     ...state,
+    status: "ready",
     logRegistry,
     data: {
       ...state.data,
       [catalogEntry.question.id]: content
     }
   };
+  if ("pending" in newState) delete newState.pending;
+  return newState;
 };
 
 const InterviewCatalogContext = React.createContext<InterviewCatalog>(null);
@@ -156,7 +204,7 @@ const DefaultInterviewRenderer: React.FC<InterviewRendererProps> = ({
           />
         )}
       />
-      <View style={tw`flex-none`}>{input ? input : null}</View>
+      {input ? <View style={tw`flex-none`}>{input}</View> : null}
     </View>
   );
 };
@@ -188,19 +236,25 @@ const InterviewDisplay: React.FC<
     <InterviewRenderer
       intervieweeAvatar={intervieweeAvatar}
       interviewerAvatar={interviewerAvatar}
-      logRegistry={state.logRegistry.concat(
-        interviewCatalogEntry && !interviewCatalogEntry.answered
-          ? [
-              {
-                id: "temp",
-                timestamp: new Date(),
-                content: interviewCatalogEntry.question.question
-              }
-            ]
-          : []
-      )}
+      logRegistry={
+        state.status === "ready"
+          ? state.logRegistry.concat(
+              interviewCatalogEntry && !interviewCatalogEntry.answered
+                ? [
+                    {
+                      id: "temp",
+                      timestamp: new Date(),
+                      content: interviewCatalogEntry.question.question
+                    }
+                  ]
+                : []
+            )
+          : state.logRegistry
+      }
       input={
-        interviewCatalogEntry && !interviewCatalogEntry.answered ? (
+        state.status === "ready" &&
+        interviewCatalogEntry &&
+        !interviewCatalogEntry.answered ? (
           <React.Fragment key={state.logRegistry.length}>
             {interviewCatalogEntry.question.input((content) => {
               update({
@@ -226,6 +280,7 @@ export const Interview: React.FC<InterviewProps> = ({
     () => new Map()
   );
   const [state, update] = React.useReducer(inquiryReduce, {
+    status: "ready",
     // exposes the interview catalog to the reducer
     interviewCatalog,
 
@@ -234,12 +289,55 @@ export const Interview: React.FC<InterviewProps> = ({
     logRegistry: [],
     data: {}
   });
+  console.log(state);
+
+  const pending = "pending" in state && state.pending;
+  React.useEffect(() => {
+    if (state.status !== "validating" || !pending) return;
+
+    pending.then(
+      ([reason, content]) =>
+        update({
+          event: "validated",
+          reason,
+          content
+        }),
+      ([rejection, content]) => {
+        console.error(rejection);
+        update({
+          event: "validated",
+          reason: rejection,
+          content
+        });
+      }
+    );
+  }, [state.status, pending]);
+
+  React.useEffect(() => {
+    if (state.status !== "transforming") return;
+
+    pending.then(
+      ([content]) =>
+        update({
+          event: "transformed",
+          content
+        }),
+      ([rejection, content]) => {
+        console.error(rejection);
+        update({
+          event: "transformed",
+          content
+        });
+      }
+    );
+  }, [state.status, pending]);
 
   /**
    * Runs on every logRegistry but only after all questions
    * are registered or updated.
    */
   React.useEffect(() => {
+    if (state.status !== "ready") return;
     const step = getUnansweredCatalogEntryId(interviewCatalog);
     if (!step) {
       // if no unanswered step was found, calls onCompleted
@@ -257,7 +355,14 @@ export const Interview: React.FC<InterviewProps> = ({
       event: "step_changed",
       step
     });
-  }, [state.logRegistry.length, onComplete]);
+  }, [
+    state.logRegistry.length,
+    onComplete,
+    interviewCatalog,
+    state.status,
+    state.data,
+    state.step
+  ]);
 
   return (
     <InterviewCatalogContext.Provider value={interviewCatalog}>
