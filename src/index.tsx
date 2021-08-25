@@ -47,7 +47,7 @@ const App = () => (
               id="name"
               question="Qual o seu nome?"
               transform={async (name: string) => {
-                await new Promise((res) => setTimeout(res, 3000));
+                await new Promise((res) => setTimeout(res, 1000));
                 return name.trim().toUpperCase();
               }}
               validate={(name) => !name && "Precisamos do seu nome"}
@@ -59,7 +59,10 @@ const App = () => (
             <Question
               id="age"
               question="Qual sua idade?"
-              transform={(value: string) => parseInt(value, 10)}
+              transform={async (value: string) => {
+                await new Promise((res) => setTimeout(res, 1000));
+                return parseInt(value, 10);
+              }}
               validate={(age: number) => {
                 if (isNaN(age)) {
                   return "Não entendi, idade deve ser um número.";

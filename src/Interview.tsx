@@ -2,6 +2,7 @@ import * as React from "react";
 import { View, FlatList } from "react-native";
 import { useLazyRef } from "./use-lazy-ref";
 import Message from "./Message";
+import { LoadingIcon } from "./LoadingIcon";
 import tw from "tailwind-react-native-classnames";
 import { useMemo } from "react";
 
@@ -24,8 +25,7 @@ type LogEntry = {
   mine?: boolean;
 };
 
-type ReadyInterviewState = {
-  status: "ready";
+type CommonInterviewState = {
   step: Symbol;
   logRegistry: LogEntry[];
   interviewCatalog: InterviewCatalog;
@@ -33,8 +33,8 @@ type ReadyInterviewState = {
 };
 
 type InterviewState =
-  | ReadyInterviewState
-  | (Omit<ReadyInterviewState, "status"> & {
+  | (CommonInterviewState & { status: "ready" })
+  | (CommonInterviewState & {
       status: "transforming" | "validating";
       pending: Promise<unknown>;
     });
@@ -51,6 +51,7 @@ type InterviewProps = {
 
 type InterviewRendererProps = Pick<InterviewState, "logRegistry"> &
   Pick<InterviewProps, "intervieweeAvatar" | "interviewerAvatar"> & {
+    pending: boolean;
     input: React.ReactElement;
   };
 
@@ -187,22 +188,32 @@ Question.defaultProps = {
 const DefaultInterviewRenderer: React.FC<InterviewRendererProps> = ({
   logRegistry,
   input,
+  pending,
   intervieweeAvatar,
   interviewerAvatar
 }) => {
-  const chat = useMemo(() => logRegistry.slice(0).reverse(), [logRegistry]);
+  const chat = useMemo(
+    () => [].concat(logRegistry.slice(0), pending ? [pending] : []).reverse(),
+    [logRegistry, pending]
+  );
   return (
     <View style={tw`flex-1 justify-end`}>
       <FlatList
         data={chat}
         inverted
-        keyExtractor={({ id }) => id}
-        renderItem={({ item: message }) => (
-          <Message
-            avatar={message.mine ? intervieweeAvatar : interviewerAvatar}
-            {...message}
-          />
-        )}
+        keyExtractor={(item) => (item === true ? "pending" : item.id)}
+        renderItem={({ item: message }) =>
+          message === true ? (
+            <Message avatar={interviewerAvatar}>
+              <LoadingIcon />
+            </Message>
+          ) : (
+            <Message
+              avatar={message.mine ? intervieweeAvatar : interviewerAvatar}
+              {...message}
+            />
+          )
+        }
       />
       {input ? <View style={tw`flex-none`}>{input}</View> : null}
     </View>
@@ -236,6 +247,7 @@ const InterviewDisplay: React.FC<
     <InterviewRenderer
       intervieweeAvatar={intervieweeAvatar}
       interviewerAvatar={interviewerAvatar}
+      pending={"pending" in state}
       logRegistry={
         state.status === "ready"
           ? state.logRegistry.concat(
@@ -289,7 +301,6 @@ export const Interview: React.FC<InterviewProps> = ({
     logRegistry: [],
     data: {}
   });
-  console.log(state);
 
   const pending = "pending" in state && state.pending;
   React.useEffect(() => {
@@ -338,10 +349,12 @@ export const Interview: React.FC<InterviewProps> = ({
    */
   React.useEffect(() => {
     if (state.status !== "ready") return;
+
     const step = getUnansweredCatalogEntryId(interviewCatalog);
-    if (!step) {
+    if (!step && !state.step) {
       // if no unanswered step was found, calls onCompleted
       onComplete(state.data);
+      return;
     }
 
     // if the step remains the same, do nothing

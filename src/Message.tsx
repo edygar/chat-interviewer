@@ -1,20 +1,13 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 import * as React from "react";
-import {
-  StyleSheet,
-  Image,
-  Text,
-  TextProps,
-  View,
-  ViewProps
-} from "react-native";
+import { Image, Text, TextProps, View, ViewProps } from "react-native";
 import tw from "tailwind-react-native-classnames";
 
 type MessageProps = ViewProps & {
   avatar?: string;
   mine?: boolean;
 } & (
-    | { children: React.ReactNode[] }
+    | { children: React.ReactNode }
     | {
         content: string | number;
       }

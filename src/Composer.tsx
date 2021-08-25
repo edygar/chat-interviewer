@@ -27,8 +27,10 @@ const Composer: React.FC<
         }}
         {...props}
       />
-      <Pressable onPress={() => text && onSend(text)}>
-        <SendIcon style={[tw`h-6 w-6 mx-3 my-2`, !text && tw`opacity-30`]} />
+      <Pressable onPress={() => text.trim() && onSend(text)}>
+        <SendIcon
+          style={[tw`h-6 w-6 mx-3 my-2`, !text.trim() && tw`opacity-30`]}
+        />
       </Pressable>
     </View>
   );
