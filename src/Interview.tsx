@@ -2,7 +2,7 @@ import * as React from "react";
 import { View, FlatList } from "react-native";
 import { useLazyRef } from "./use-lazy-ref";
 import Message from "./Message";
-import { LoadingIcon } from "./LoadingIcon";
+import LoadingIcon from "./LoadingIcon";
 import tw from "tailwind-react-native-classnames";
 import { useMemo } from "react";
 
@@ -49,7 +49,7 @@ type InterviewProps = {
   ) => React.ReactElement;
 };
 
-type InterviewRendererProps = Pick<InterviewState, "logRegistry"> &
+export type InterviewRendererProps = Pick<InterviewState, "logRegistry"> &
   Pick<InterviewProps, "intervieweeAvatar" | "interviewerAvatar"> & {
     pending: boolean;
     input: React.ReactElement;

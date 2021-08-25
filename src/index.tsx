@@ -46,10 +46,7 @@ const App = () => (
             <Question
               id="name"
               question="Qual o seu nome?"
-              transform={async (name: string) => {
-                await new Promise((res) => setTimeout(res, 1000));
-                return name.trim().toUpperCase();
-              }}
+              transform={(name: string) => name.trim().toUpperCase()}
               validate={(name) => !name && "Precisamos do seu nome"}
               input={(setAnswer) => (
                 <Composer autoFocus onSend={(message) => setAnswer(message)} />
@@ -140,7 +137,6 @@ const App = () => (
     </KeyboardAvoidingView>
   </SafeAreaView>
 );
-
 setTimeout(() => {
   try {
     const ids = [];

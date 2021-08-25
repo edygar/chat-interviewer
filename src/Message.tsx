@@ -56,7 +56,7 @@ const Message: MessageModule = (props) => {
             maxWidth: "75%"
           }),
           mine
-            ? tw` rounded-br-none bg-blue-400`
+            ? tw`rounded-br-none bg-blue-400`
             : tw`rounded-bl-none bg-gray-600`
         ]}
       >
