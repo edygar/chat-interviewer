@@ -44,7 +44,10 @@ type InterviewProps = {
   render?: React.ElementType<InterviewRendererProps>;
   interviewerAvatar?: string;
   intervieweeAvatar?: string;
-  onComplete: (answers: InterviewState["data"]) => void;
+  onComplete: (
+    answers: InterviewState["data"],
+    logRegistry: InterviewState["logRegistry"]
+  ) => void;
   children: (
     currentState: Pick<InterviewState, "data" | "logRegistry">
   ) => React.ReactElement;
@@ -363,7 +366,7 @@ export const Interview: React.FC<InterviewProps> = ({
     const step = getUnansweredCatalogEntryId(interviewCatalog);
     if (!step && !state.step) {
       // if no unanswered step was found, calls onCompleted
-      onComplete(state.data);
+      onComplete(state.data, state.logRegistry);
       return;
     }
 
