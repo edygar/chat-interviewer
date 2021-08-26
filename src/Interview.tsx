@@ -40,6 +40,7 @@ type InterviewState =
     });
 
 type InterviewProps = {
+  logRegistry?: LogEntry[];
   render?: React.ElementType<InterviewRendererProps>;
   interviewerAvatar?: string;
   intervieweeAvatar?: string;
@@ -204,13 +205,16 @@ const DefaultInterviewRenderer: React.FC<InterviewRendererProps> = ({
         data={chat}
         inverted
         keyExtractor={(item) => (item === true ? "pending" : item.id)}
-        renderItem={({ item: message }) =>
+        renderItem={({ item: message, index }) =>
           message === true ? (
             <Message avatar={interviewerAvatar}>
               <LoadingIcon />
             </Message>
           ) : (
             <Message
+              lastMessage={
+                !chat[index - 1] || !!chat[index - 1]?.mine !== !!message.mine
+              }
               avatar={message.mine ? intervieweeAvatar : interviewerAvatar}
               {...message}
             />
@@ -225,11 +229,13 @@ const DefaultInterviewRenderer: React.FC<InterviewRendererProps> = ({
 const InterviewDisplay: React.FC<
   {
     interviewCatalog: InterviewCatalog;
+    logRegistry: LogEntry[];
     state: InterviewState;
     update: (action: InterviewAction) => void;
   } & Pick<InterviewProps, "render" | "interviewerAvatar" | "intervieweeAvatar">
 > = ({
   state,
+  logRegistry,
   render: InterviewRenderer,
   interviewCatalog: promptsMap,
   interviewerAvatar,
@@ -252,7 +258,8 @@ const InterviewDisplay: React.FC<
       pending={"pending" in state}
       logRegistry={
         state.status === "ready"
-          ? state.logRegistry.concat(
+          ? [].concat(
+              logRegistry,
               interviewCatalogEntry && !interviewCatalogEntry.answered
                 ? [
                     {
@@ -263,7 +270,7 @@ const InterviewDisplay: React.FC<
                   ]
                 : []
             )
-          : state.logRegistry
+          : logRegistry
       }
       input={
         state.status === "ready" &&
@@ -286,6 +293,7 @@ const InterviewDisplay: React.FC<
 export const Interview: React.FC<InterviewProps> = ({
   render,
   children,
+  logRegistry = [],
   interviewerAvatar,
   intervieweeAvatar,
   onComplete
@@ -379,11 +387,17 @@ export const Interview: React.FC<InterviewProps> = ({
     state.step
   ]);
 
+  const fullLogRegistry = useMemo(() => logRegistry.concat(state.logRegistry), [
+    logRegistry,
+    state.logRegistry
+  ]);
+
   return (
     <InterviewCatalogContext.Provider value={interviewCatalog}>
-      {children({ data: state.data, logRegistry: state.logRegistry })}
+      {children({ data: state.data, logRegistry: fullLogRegistry })}
       <InterviewDisplay
         render={render}
+        logRegistry={fullLogRegistry}
         state={state}
         interviewerAvatar={interviewerAvatar}
         intervieweeAvatar={intervieweeAvatar}

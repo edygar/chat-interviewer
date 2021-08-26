@@ -36,6 +36,13 @@ const App = () => (
       style={tw`flex-1`}
     >
       <Interview
+        logRegistry={[
+          {
+            id: "123",
+            timestamp: new Date(),
+            content: "Olá, seja bem-vindo"
+          }
+        ]}
         interviewerAvatar="https://reactnative.dev/img/tiny_logo.png"
         onComplete={(answers) => {
           alert(JSON.stringify(answers, undefined, 2));
@@ -56,10 +63,7 @@ const App = () => (
             <Question
               id="age"
               question="Qual sua idade?"
-              transform={async (value: string) => {
-                await new Promise((res) => setTimeout(res, 1000));
-                return parseInt(value, 10);
-              }}
+              transform={(value: string) => parseInt(value, 10)}
               validate={(age: number) => {
                 if (isNaN(age)) {
                   return "Não entendi, idade deve ser um número.";

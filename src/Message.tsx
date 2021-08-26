@@ -4,6 +4,7 @@ import { Image, Text, TextProps, View, ViewProps } from "react-native";
 import tw from "tailwind-react-native-classnames";
 
 type MessageProps = ViewProps & {
+  lastMessage?: boolean;
   avatar?: string;
   mine?: boolean;
 } & (
@@ -18,7 +19,7 @@ type MessageModule = ((props: MessageProps) => React.ReactElement) & {
 };
 
 const Message: MessageModule = (props) => {
-  const { mine, avatar, style, ...otherProps } = props;
+  const { mine, avatar, style, lastMessage, ...otherProps } = props;
   let content;
 
   if ("children" in otherProps) {
@@ -32,13 +33,15 @@ const Message: MessageModule = (props) => {
 
   const avatarStyle = [
     tw`w-10 h-10 bg-gray-600 rounded-full justify-center items-center`,
-    mine ? tw`bg-blue-400 ml-2` : tw`mr-2`
+    mine ? tw`bg-blue-400 ml-2` : tw`mr-2`,
+    !lastMessage ? tw`opacity-0` : null
   ];
   return (
     <View
       style={[
         tw`m-2 flex-row items-end justify-start`,
         mine && tw`flex-row-reverse`,
+        !lastMessage && tw`-mb-1`,
         style
       ]}
       {...otherProps}
@@ -57,7 +60,9 @@ const Message: MessageModule = (props) => {
           }),
           mine
             ? tw`rounded-br-none bg-blue-400`
-            : tw`rounded-bl-none bg-gray-600`
+            : tw`rounded-bl-none bg-gray-600`,
+
+          !lastMessage ? tw`rounded-lg ` : null
         ]}
       >
         {content}
