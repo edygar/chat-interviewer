@@ -210,7 +210,7 @@ const DefaultInterviewRenderer: React.FC<InterviewRendererProps> = ({
         keyExtractor={(item) => (item === true ? "pending" : item.id)}
         renderItem={({ item: message, index }) =>
           message === true ? (
-            <Message avatar={interviewerAvatar}>
+            <Message avatar={interviewerAvatar} lastMessage>
               <LoadingIcon />
             </Message>
           ) : (

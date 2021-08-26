@@ -64,7 +64,7 @@ const App = () => (
               id="age"
               question="Qual sua idade?"
               transform={(value: string) => parseInt(value, 10)}
-              validate={(age: number) => {
+              validate={async (age: number) => {
                 if (isNaN(age)) {
                   return "Não entendi, idade deve ser um número.";
                 }
@@ -72,6 +72,8 @@ const App = () => (
                 if (age < 18) {
                   return "Menores de 18 anos não deveriam fazer plantões";
                 }
+
+                await new Promise((resolve) => setTimeout(resolve, 3000));
               }}
               input={(setAnswer) => (
                 <Composer
@@ -87,8 +89,6 @@ const App = () => (
             <PickerPrompt
               id="role"
               question="Qual sua profissão?"
-              answer={getLabel}
-              transform={getValue}
               choices={[
                 { label: "Sou um médico", value: "doctor" },
                 { label: "Sou um enfermeiro", value: "nurse" },
@@ -101,8 +101,6 @@ const App = () => (
               <PickerPrompt
                 id="role"
                 question="Qual a sua especialidade?"
-                answer={getLabel}
-                transform={getValue}
                 choices={[
                   { label: "Sou um pneumologista", value: "pneumologist" },
                   {

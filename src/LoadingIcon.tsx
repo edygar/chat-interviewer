@@ -2,7 +2,7 @@ import * as React from "react";
 import { View, ViewProps } from "react-native";
 import tw from "tailwind-react-native-classnames";
 
-const STEPS_COUNT = 15;
+const STEPS_COUNT = 12;
 
 function getGradient(position, currentIndex, stepsCount = STEPS_COUNT) {
   if (position === currentIndex) return 50;
