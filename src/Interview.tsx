@@ -382,7 +382,7 @@ export const Interview: React.FC<InterviewProps> = ({
       step
     });
   }, [
-    state.logRegistry.length,
+    state.logRegistry,
     onComplete,
     interviewCatalog,
     state.status,
